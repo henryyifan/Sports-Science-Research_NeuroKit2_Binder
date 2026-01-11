@@ -9,7 +9,7 @@ try:
     df = pd.read_csv('data/mydata.csv')
     # 如果 Polar 导出的格式有标题行，提取那一列数字
     # 这里的列名 'RR-interval (ms)' 是 Polar 的标准命名
-    rr_intervals = df['RR-interval (ms)'].values
+    rr_intervals = df['duration'].values
     print(f"数据加载成功！共计 {len(rr_intervals)} 个心跳间期。")
 except Exception as e:
     print(f"读取失败，请检查文件名或格式: {e}")
