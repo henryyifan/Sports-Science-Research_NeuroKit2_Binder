@@ -1,35 +1,79 @@
-import neurokit2 as nk
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 
-# 1. 读取并去噪
-try:
-    df = pd.read_csv('data/mydata.csv')
-    rr_raw = df['duration'].values
-    print(f"原始数据：{len(rr_raw)} 点")
-
-    # 极客优化 A：自动剔除异常值 (Artifact Correction)
-    # 训练数据中常有传感器位移产生的伪影，这行代码能防止内存被无效离群点撑爆
-    rr_intervals = nk.signal_fixpeaks(rr_raw, method="neurokit")
-    peaks = nk.intervals_to_peaks(rr_intervals)
+def generate_research_package(file_path):
+    print("开始执行科研级数据处理...")
     
-    # 2. 优化绘图方案
-    print("正在进行高效能 HRV 分析...")
-    # 极客优化 B：禁用极其耗时的 'Non-linear' 分析，只保留时域和频域
-    # 这能节省 80% 的内存，确保 Binder 不断开
-    hrv_indices = nk.hrv(peaks, sampling_rate=1000, show=True)
-
-    # 3. 结果输出
-    plt.tight_layout()
-    plt.savefig('Full_HRV_Report.png', dpi=150) # 适当降低 DPI 减少保存时的内存压力
+    # 1. 数据加载与清洗
+    df = pd.read_csv(file_path)
+    raw_data = pd.to_numeric(df['duration'], errors='coerce').dropna().values
     
-    # 提取关键指标
-    rmssd = hrv_indices['HRV_RMSSD'].values[0]
-    pnn50 = hrv_indices['HRV_pNN50'].values[0]
+    # 物理过滤 (确保生理准确性)
+    rr_clean = raw_data[(raw_data >= 300) & (raw_data <= 2000)]
+    n = len(rr_clean)
     
-    print(f"\n✅ 分析完成！")
-    print(f"RMSSD: {rmssd:.2f} ms (反映迷走神经恢复能力)")
-    print(f"pNN50: {pnn50:.2f} % (反映心率波动的稳定性)")
+    # 2. 生成图表 1: 原始 RR 间期全景图 (Proof of raw data)
+    plt.figure(figsize=(12, 5))
+    plt.plot(rr_clean, color='#3498DB', alpha=0.6)
+    plt.title(f"Complete Session RR Interval Profile (Total Beats: {n})")
+    plt.ylabel("RR Interval (ms)")
+    plt.xlabel("Beat Index")
+    plt.grid(True, alpha=0.3)
+    plt.savefig('1_Raw_RR_Profile.png')
+    plt.close()
+    print("- 已生成 1_Raw_RR_Profile.png")
 
-except Exception as e:
-    print(f"优化运行失败: {e}")
+    # 3. 分段计算逻辑 (每 1000 个心跳为一组)
+    step = 1000
+    report_list = []
+    
+    for i in range(0, n, step):
+        seg = rr_clean[i:i+step]
+        if len(seg) < 100: continue
+        
+        # 计算核心指标
+        rmssd = np.sqrt(np.mean(np.diff(seg)**2))
+        avg_hr = 60000 / np.mean(seg)
+        sdnn = np.std(seg)
+        
+        report_list.append({
+            'Segment': f"Beats {i}-{i+len(seg)}",
+            'RMSSD_ms': round(rmssd, 2),
+            'Avg_HR_BPM': round(avg_hr, 1),
+            'SDNN_ms': round(sdnn, 2)
+        })
+
+    report_df = pd.DataFrame(report_list)
+    
+    # 4. 生成图表 2: 心率与 HRV 关联趋势图 (Scientific Insight)
+    fig, ax1 = plt.subplots(figsize=(12, 6))
+    ax1.set_xlabel('Training Progression (Segments)')
+    ax1.set_ylabel('RMSSD (ms) - Vagal Tone', color='tab:red')
+    ax1.plot(report_df.index, report_df['RMSSD_ms'], marker='o', color='tab:red', linewidth=2, label='RMSSD')
+    ax1.tick_params(axis='y', labelcolor='tab:red')
+    
+    ax2 = ax1.twinx()
+    ax2.set_ylabel('Heart Rate (BPM)', color='tab:blue')
+    ax2.plot(report_df.index, report_df['Avg_HR_BPM'], marker='x', color='tab:blue', linestyle='--', label='HR')
+    ax2.tick_params(axis='y', labelcolor='tab:blue')
+    
+    plt.title('Autonomic Nervous System Response during Heavy Strength Training')
+    fig.tight_layout()
+    plt.savefig('2_HRV_HR_Correlation.png')
+    plt.close()
+    print("- 已生成 2_HRV_HR_Correlation.png")
+
+    # 5. 生成报告表 3: CSV 汇总表
+    report_df.to_csv('3_Training_Statistical_Report.csv', index=False)
+    print("- 已生成 3_Training_Statistical_Report.csv")
+    
+    print("\n" + "="*30)
+    print("✅ 分析包准备就绪！请将以下文件发送给教授：")
+    print("1. 1_Raw_RR_Profile.png (展示数据完整性)")
+    print("2. 2_HRV_HR_Correlation.png (核心科学趋势)")
+    print("3. 3_Training_Statistical_Report.csv (详细数值)")
+    print("="*30)
+
+# 运行脚本
+generate_research_package('data/mydata.csv')
