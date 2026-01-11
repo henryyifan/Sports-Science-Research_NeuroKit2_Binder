@@ -1,5 +1,5 @@
 # 核心生物信号处理库
-neurokit2>=0.2.16
+neurokit2
 # 数据处理与分析
 pandas>=2.2.3
 numpy>=2.1.2
