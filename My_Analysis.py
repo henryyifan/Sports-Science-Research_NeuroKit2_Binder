@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 # 1. 读取数据
 try:
     # 路径记得和你 Binder 左侧列表对齐，如果是根目录就去掉 'data/'
-    df = pd.read_csv('mydata.csv') 
+    df = pd.read_csv('data/mydata.csv') 
     rr_intervals = df['duration'].values
     print(f"数据加载成功！共计 {len(rr_intervals)} 个心跳间期。")
 except Exception as e:
